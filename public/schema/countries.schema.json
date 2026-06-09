@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akgularda.github.io/esgmap/schema/countries.schema.json",
+  "title": "ESGMap dataset",
+  "type": "object",
+  "required": [
+    "meta",
+    "countries"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object"
+    },
+    "countries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "iso3",
+          "name",
+          "region",
+          "tier",
+          "score"
+        ],
+        "properties": {
+          "iso3": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "match": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "rich",
+              "base"
+            ]
+          },
+          "capital": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "renewable": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "carbon": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "co2pc": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "energy": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "forest": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "pm25": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "climate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ev": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "paris": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ratified",
+              "signed",
+              "withdrawn",
+              "none",
+              null
+            ]
+          },
+          "netZero": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ifrsS1": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "mandatory",
+              "adopting",
+              "roadmap",
+              "consulting",
+              "none",
+              null
+            ]
+          },
+          "ifrsS2": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "mandatory",
+              "adopting",
+              "roadmap",
+              "consulting",
+              "none",
+              null
+            ]
+          },
+          "mix": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "years": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "subscores": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "subscoresUsed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "history": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

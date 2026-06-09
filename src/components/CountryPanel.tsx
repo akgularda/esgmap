@@ -10,9 +10,22 @@ import { LineChart } from "../ui/LineChart";
 import { Segmented } from "../ui/Segmented";
 import { StatusDot } from "../ui/StatusDot";
 import { statusStyle, regionFlagTone } from "../ui/tokens";
+import { citation } from "../lib/cite";
+import { downloadText } from "../lib/exportSvg";
 
-function StatTile({ label, value, unit, color, sub }: {
-  label: string; value: ReactNode; unit?: string; color?: string; sub?: string;
+function FooterBtn({ icon, label, onClick, active }: { icon: string; label: string; onClick: () => void; active?: boolean }) {
+  return (
+    <button onClick={onClick} style={{
+      flex: 1, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)",
+      color: active ? "var(--accent)" : "var(--text-2)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+    }}>
+      <Icon name={active ? "check" : icon} size={13} />{label}
+    </button>
+  );
+}
+
+function StatTile({ label, value, unit, color, sub, yearTag }: {
+  label: string; value: ReactNode; unit?: string; color?: string; sub?: string; yearTag?: number | null;
 }) {
   return (
     <div style={{ background: "var(--panel-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 13px" }}>
@@ -21,7 +34,11 @@ function StatTile({ label, value, unit, color, sub }: {
         <span className="mono tnum" style={{ fontSize: 23, fontWeight: 600, color: color || "var(--text)", lineHeight: 1 }}>{value}</span>
         {unit && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{unit}</span>}
       </div>
-      {sub && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 5 }}>{sub}</div>}
+      {(sub || yearTag != null) && (
+        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 5 }}>
+          {sub}{yearTag != null && <span className="mono tnum" title="observation year (data vintage)" style={{ marginLeft: sub ? 6 : 0, opacity: 0.85 }}>· {yearTag}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -58,15 +75,17 @@ export function SectionLabel({ icon, text, noMargin }: { icon: string; text: str
   );
 }
 
-export function CountryPanel({ rec, metric, scales, onClose, onPin, isPinned }: {
+export function CountryPanel({ rec, metric, scales, onClose, onPin, isPinned, permalinkFor }: {
   rec: CountryRecord;
   metric: MetricKey;
   scales: Scales;
   onClose: () => void;
   onPin: (rec: CountryRecord) => void;
   isPinned: boolean;
+  permalinkFor?: () => string;
 }) {
   const [chartMetric, setChartMetric] = useState<"renewable" | "carbon">("renewable");
+  const [cited, setCited] = useState(false);
   useEffect(() => { setChartMetric(metric === "carbon" ? "carbon" : "renewable"); }, [rec, metric]);
 
   const tone = regionFlagTone(rec.region);
@@ -141,14 +160,18 @@ export function CountryPanel({ rec, metric, scales, onClose, onPin, isPinned }: 
             <div style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 4, lineHeight: 1.45 }}>
               Composite of clean-power share, grid carbon intensity, per-capita emissions & disclosure readiness.
             </div>
+            <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, display: "flex", alignItems: "center", gap: 5 }}>
+              <Icon name="info" size={12} />
+              scored on {rec.subscoresUsed.length}/5 indicators{rec.subscoresUsed.length < 5 ? " · others renormalised" : ""}
+            </div>
           </div>
         </div>
 
         {/* stat tiles */}
         <div style={{ padding: "16px 22px 6px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <StatTile label="Renewable power" value={rec.renewable != null ? Math.round(rec.renewable) : "—"} unit="%" color={renColor} sub="of electricity" />
-          <StatTile label="Grid carbon" value={rec.carbon != null ? rec.carbon : "—"} unit="g" color={carbColor} sub="CO₂/kWh" />
-          <StatTile label="Emissions" value={rec.co2pc != null ? rec.co2pc : "—"} unit={rec.co2pc != null ? "t" : ""} color={rec.co2pc != null ? scales.co2pc(rec.co2pc) : "var(--text)"} sub="CO₂ per capita" />
+          <StatTile label="Renewable power" value={rec.renewable != null ? Math.round(rec.renewable) : "—"} unit="%" color={renColor} sub="of electricity" yearTag={rec.years.renewable} />
+          <StatTile label="Grid carbon" value={rec.carbon != null ? rec.carbon : "—"} unit="g" color={carbColor} sub="CO₂/kWh" yearTag={rec.years.carbon} />
+          <StatTile label="Emissions" value={rec.co2pc != null ? rec.co2pc : "—"} unit={rec.co2pc != null ? "t" : ""} color={rec.co2pc != null ? scales.co2pc(rec.co2pc) : "var(--text)"} sub="CO₂ per capita" yearTag={rec.years.co2pc} />
           <StatTile label="Net-zero target" value={rec.netZero || (isRich ? "—" : "n/a")} color={rec.netZero ? "var(--accent)" : "var(--text-3)"} sub={rec.netZero ? "pledged year" : "no national pledge"} />
         </div>
 
@@ -156,9 +179,9 @@ export function CountryPanel({ rec, metric, scales, onClose, onPin, isPinned }: 
         <div style={{ padding: "10px 22px 16px" }}>
           <SectionLabel icon="leaf" text="Environment & energy" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <StatTile label="Air quality" value={rec.pm25 != null ? Math.round(rec.pm25) : "—"} unit="µg/m³" color={rec.pm25 != null ? scales.pm25(rec.pm25) : "var(--text)"} sub="PM2.5 annual mean" />
-            <StatTile label="Forest cover" value={rec.forest != null ? Math.round(rec.forest) : "—"} unit="%" color={rec.forest != null ? scales.forest(rec.forest) : "var(--text)"} sub="of land area" />
-            <StatTile label="Electricity use" value={rec.energy != null ? (rec.energy >= 1000 ? (rec.energy / 1000).toFixed(1) + "k" : rec.energy) : "—"} unit="kWh" color="var(--text)" sub="per capita / yr" />
+            <StatTile label="Air quality" value={rec.pm25 != null ? Math.round(rec.pm25) : "—"} unit="µg/m³" color={rec.pm25 != null ? scales.pm25(rec.pm25) : "var(--text)"} sub="PM2.5 mean" yearTag={rec.years.pm25} />
+            <StatTile label="Forest cover" value={rec.forest != null ? Math.round(rec.forest) : "—"} unit="%" color={rec.forest != null ? scales.forest(rec.forest) : "var(--text)"} sub="of land area" yearTag={rec.years.forest} />
+            <StatTile label="Electricity use" value={rec.energy != null ? (rec.energy >= 1000 ? (rec.energy / 1000).toFixed(1) + "k" : rec.energy) : "—"} unit="kWh" color="var(--text)" sub="per capita / yr" yearTag={rec.years.energy} />
             <StatTile label="Climate risk" value={rec.climate != null ? Math.round(rec.climate) : "—"} unit="/100" color={rec.climate != null ? scales.climate(rec.climate) : "var(--text)"} sub="exposure & readiness" />
           </div>
           {rec.ev != null && (
@@ -192,8 +215,14 @@ export function CountryPanel({ rec, metric, scales, onClose, onPin, isPinned }: 
               <Segmented size="sm" value={chartMetric} onChange={setChartMetric}
                 options={[{ value: "renewable", label: "Renewables" }, { value: "carbon", label: "Carbon" }]} />
             </div>
-            <LineChart series={[{ years: hist.years, values: hist[chartMetric], color: histColor, label: cm.short }]}
+            <LineChart series={[{ years: hist.years, values: hist[chartMetric], color: histColor, label: cm.short, interpolated: hist.interpolated[chartMetric] }]}
               yMax={chartMetric === "renewable" ? 100 : Math.max(200, Math.ceil(Math.max(...carbonVals(hist.carbon)) / 100) * 100)} />
+            {hist.interpolated[chartMetric].some(Boolean) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 10.5, color: "var(--text-3)" }}>
+                <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="var(--text-3)" strokeWidth="2" strokeDasharray="2 3" /></svg>
+                carried forward (no observation that year)
+              </div>
+            )}
             {delta != null && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 12, color: "var(--text-3)" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: deltaGood ? "var(--accent)" : "var(--bad)" }}>
@@ -227,15 +256,22 @@ export function CountryPanel({ rec, metric, scales, onClose, onPin, isPinned }: 
       </div>
 
       {/* footer */}
-      <div style={{ padding: "12px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
+      <div style={{ padding: "12px 22px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
         <button onClick={() => onPin(rec)} style={{
-          flex: 1, height: 40, borderRadius: 9, border: "1px solid " + (isPinned ? "var(--accent-2)" : "var(--border-2)"),
+          height: 40, borderRadius: 9, border: "1px solid " + (isPinned ? "var(--accent-2)" : "var(--border-2)"),
           background: isPinned ? "rgba(95,191,127,.12)" : "var(--panel-2)", color: isPinned ? "var(--accent)" : "var(--text)",
           fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
         }}>
           <Icon name={isPinned ? "check" : "compare"} size={15} />
           {isPinned ? "Added to compare" : "Add to compare"}
         </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <FooterBtn icon="doc" label={cited ? "Cite copied" : "Cite"} active={cited} onClick={() => {
+            navigator.clipboard?.writeText(citation("apa", permalinkFor ? permalinkFor() : location.href, rec)).then(() => { setCited(true); setTimeout(() => setCited(false), 1400); });
+          }} />
+          <FooterBtn icon="layers" label="JSON" onClick={() => downloadText(JSON.stringify(rec, null, 2), `esgmap-${rec.iso3}.json`, "application/json")} />
+          <FooterBtn icon="rank" label="Print" onClick={() => window.print()} />
+        </div>
       </div>
     </div>
   );

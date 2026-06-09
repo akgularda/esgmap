@@ -1,0 +1,67 @@
+{
+  "dataset": "ESGMap",
+  "version": "2025.f27eab0",
+  "contentHash": "f27eab0f9a1be6c46ba13766e7cd47fd0527a9b4322e834151e4761108b76cad",
+  "gitSha": "8babb4c",
+  "nodeVersion": "v24.11.0",
+  "generatedAt": "2026-06-09",
+  "yearMin": 2000,
+  "yearMax": 2025,
+  "territories": 94,
+  "editionYearSelection": "latest year with renewables data for ≥50% of the curated universe",
+  "coverage": {
+    "renewable": 94,
+    "carbon": 94,
+    "co2pc": 94,
+    "energy": 94,
+    "mix": 94,
+    "forest": 94,
+    "pm25": 94,
+    "score": 94
+  },
+  "scoreWeights": {
+    "renew": 0.3,
+    "carbon": 0.25,
+    "co2": 0.2,
+    "disclosure": 0.15,
+    "climate": 0.1
+  },
+  "sources": [
+    {
+      "id": "owid-energy",
+      "label": "Our World in Data — Energy",
+      "url": "https://github.com/owid/energy-data",
+      "retrievedAt": "2026-06-09",
+      "license": "Creative Commons BY 4.0"
+    },
+    {
+      "id": "owid-co2",
+      "label": "Our World in Data — CO₂ and Greenhouse Gas Emissions",
+      "url": "https://github.com/owid/co2-data",
+      "retrievedAt": "2026-06-09",
+      "license": "Creative Commons BY 4.0"
+    },
+    {
+      "id": "wb-forest",
+      "label": "World Bank — Forest area (% of land), FAO FRA",
+      "url": "https://data.worldbank.org/indicator/AG.LND.FRST.ZS",
+      "retrievedAt": "2026-06-09",
+      "license": "Creative Commons BY 4.0"
+    },
+    {
+      "id": "wb-pm25",
+      "label": "World Bank — PM2.5 mean annual exposure (WHO / IHME)",
+      "url": "https://data.worldbank.org/indicator/EN.ATM.PM25.MC.M3",
+      "retrievedAt": "2026-06-09",
+      "license": "Creative Commons BY 4.0"
+    },
+    {
+      "id": "esgmap-curated",
+      "label": "ESGMap curated policy layer — UNFCCC NDC Registry; Climate Watch (WRI); Net Zero Tracker (Oxford/ECIU); IFRS Foundation jurisdiction profiles; IEA Global EV Outlook; ND-GAIN Country Index",
+      "url": "https://github.com/",
+      "retrievedAt": "2026-06-09",
+      "license": "Compiled by ESGMap from cited public sources"
+    }
+  ],
+  "reproduce": "npm ci && npm run build:data — re-fetches the cited feeds; the contentHash verifies an identical edition."
+}

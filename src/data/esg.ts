@@ -58,24 +58,62 @@ export function lookupByName(n: string | null | undefined): CountryRecord | null
 
 export type ColorScale = ScaleLinear<string, string>;
 export type Scales = Record<MetricKey, ColorScale>;
+export type Palette = "default" | "cividis" | "mono";
 
-/** d3 color scales per metric (RGB interpolation, clamped). */
-export function buildScales(): Scales {
-  const mk = (domain: number[], range: string[]): ColorScale =>
-    scaleLinear<string>()
-      .domain(domain)
-      .range(range)
-      .clamp(true)
-      .interpolate(interpolateRgb);
-  return {
-    renewable: mk([0, 20, 40, 60, 80, 100], ["#7a4a1e", "#a06a22", "#c2982e", "#9bbf4a", "#5aae54", "#2f9e57"]),
-    carbon: mk([0, 150, 300, 600, 900, 1200], ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#d4503e", "#7a2d28"]),
-    score: mk([20, 40, 60, 80, 95], ["#b34334", "#d4823c", "#e0c542", "#7fb35a", "#2f9e57"]),
-    co2pc: mk([0, 2, 6, 12, 20, 35], ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#d4503e", "#7a2d28"]),
-    pm25: mk([0, 10, 25, 40, 60, 100], ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#d4503e", "#7a2d28"]),
-    forest: mk([0, 15, 35, 55, 80], ["#8a6a3a", "#bfa24a", "#9bbf4a", "#4fa85a", "#1f7a44"]),
-    climate: mk([15, 30, 45, 60, 80], ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#b34334"]),
-  };
+export const PALETTES: { id: Palette; label: string; note: string }[] = [
+  { id: "default", label: "Default", note: "green → red" },
+  { id: "cividis", label: "Colourblind-safe", note: "cividis (CVD-safe)" },
+  { id: "mono", label: "Greyscale", note: "print / monochrome" },
+];
+
+// Per-metric domain breakpoints + the hand-tuned default ranges + good-direction.
+const SCALE_DEFS: Record<MetricKey, { domain: number[]; range: string[]; better: "high" | "low" }> = {
+  renewable: { domain: [0, 20, 40, 60, 80, 100], range: ["#7a4a1e", "#a06a22", "#c2982e", "#9bbf4a", "#5aae54", "#2f9e57"], better: "high" },
+  carbon: { domain: [0, 150, 300, 600, 900, 1200], range: ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#d4503e", "#7a2d28"], better: "low" },
+  score: { domain: [20, 40, 60, 80, 95], range: ["#b34334", "#d4823c", "#e0c542", "#7fb35a", "#2f9e57"], better: "high" },
+  co2pc: { domain: [0, 2, 6, 12, 20, 35], range: ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#d4503e", "#7a2d28"], better: "low" },
+  pm25: { domain: [0, 10, 25, 40, 60, 100], range: ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#d4503e", "#7a2d28"], better: "low" },
+  forest: { domain: [0, 15, 35, 55, 80], range: ["#8a6a3a", "#bfa24a", "#9bbf4a", "#4fa85a", "#1f7a44"], better: "high" },
+  climate: { domain: [15, 30, 45, 60, 80], range: ["#2f9e57", "#9bbf4a", "#e0c542", "#e08a3c", "#b34334"], better: "low" },
+};
+
+// Sequential ramps, dark (bad) → bright (good). Both are CVD-/print-robust.
+const CIVIDIS = ["#00204d", "#26456e", "#576770", "#a69d75", "#ffea46"];
+const MONO = ["#39433b", "#5e685f", "#8a948c", "#bcc6bd", "#eef3ee"];
+
+/** d3 color scales per metric. palette: hand-tuned 'default', CVD-safe 'cividis', or 'mono' greyscale. */
+export function buildScales(palette: Palette = "default"): Scales {
+  const ramp = (stops: string[]) =>
+    scaleLinear<string>().domain(stops.map((_, i) => i / (stops.length - 1))).range(stops).interpolate(interpolateRgb);
+  const out = {} as Scales;
+  for (const key of Object.keys(SCALE_DEFS) as MetricKey[]) {
+    const def = SCALE_DEFS[key];
+    let range = def.range;
+    if (palette !== "default") {
+      const stops = palette === "cividis" ? CIVIDIS : MONO;
+      const r = ramp(stops);
+      const lo = def.domain[0], hi = def.domain[def.domain.length - 1];
+      range = def.domain.map((d) => {
+        const t = (d - lo) / (hi - lo);
+        return r(def.better === "high" ? t : 1 - t); // good end → bright
+      });
+    }
+    out[key] = scaleLinear<string>().domain(def.domain).range(range).clamp(true).interpolate(interpolateRgb);
+  }
+  return out;
+}
+
+/** Recompute the composite from a country's stored sub-scores under arbitrary weights
+ *  (the same renormalise-over-available logic as the build). Used by the Score Lab. */
+export function scoreWith(subscores: CountryRecord["subscores"], weights: Record<string, number>): number | null {
+  let wsum = 0, acc = 0;
+  for (const k of Object.keys(weights)) {
+    const v = subscores[k as keyof typeof subscores];
+    if (v == null) continue;
+    wsum += weights[k];
+    acc += weights[k] * v;
+  }
+  return wsum ? Math.round(acc / wsum) : null;
 }
 
 export const METRICS: Record<MetricKey, MetricMeta> = {

@@ -2,7 +2,14 @@ import { useState } from "react";
 import type { CountryRecord } from "../types";
 import type { Scales } from "../data/esg";
 import { OverlayCard } from "./OverlayCard";
+import type { MetricYears } from "../types";
 import { SectionLabel } from "../components/CountryPanel";
+
+function differingVintage(a: CountryRecord, b: CountryRecord): boolean {
+  return (Object.keys(a.years) as (keyof MetricYears)[]).some(
+    (k) => a.years[k] != null && b.years[k] != null && a.years[k] !== b.years[k],
+  );
+}
 import { ScoreRing } from "../ui/ScoreRing";
 import { LineChart } from "../ui/LineChart";
 import { Segmented } from "../ui/Segmented";
@@ -54,6 +61,15 @@ export function CompareOverlay({ pinned, scales, onClose, onRemove }: {
       <div style={{ display: "flex", gap: 16, padding: "4px 0 18px" }}>
         <Col c={a} tone={H_COLOR.a} /><div style={{ width: 1, background: "var(--border)" }} /><Col c={b} tone={H_COLOR.b} />
       </div>
+      {(a.subscoresUsed.length !== b.subscoresUsed.length || differingVintage(a, b)) && (
+        <div style={{ fontSize: 11, color: "var(--text-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 11px", marginBottom: 12, display: "flex", gap: 7, alignItems: "flex-start" }}>
+          <Icon name="info" size={13} style={{ marginTop: 1, flex: "0 0 auto" }} />
+          <span>
+            {a.subscoresUsed.length !== b.subscoresUsed.length && `Scores aren't directly comparable: ${a.name} is scored on ${a.subscoresUsed.length}/5 indicators, ${b.name} on ${b.subscoresUsed.length}/5. `}
+            Some metrics may be from different observation years — see each country's panel for vintages.
+          </span>
+        </div>
+      )}
       <div style={{ borderTop: "1px solid var(--border)" }}>
         {ROWS.map((r) => {
           const va = a[r.k], vb = b[r.k];

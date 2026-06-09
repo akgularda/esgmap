@@ -34,9 +34,26 @@ export interface History {
   /** Real annual points; null where a year has no upstream observation. */
   renewable: (number | null)[];
   carbon: (number | null)[];
+  /** Per-year masks: true where the value was carried forward (not observed). */
+  interpolated: { renewable: boolean[]; carbon: boolean[] };
   /** True when one or more gaps were carried forward from the previous year. */
   gapFilled: boolean;
+  /** Last genuinely-observed year per metric (the headline's true vintage). */
+  lastRealYear: { renewable: number | null; carbon: number | null };
 }
+
+/** Observation year per metric — the value's real vintage, not the edition year. */
+export interface MetricYears {
+  renewable: number | null;
+  carbon: number | null;
+  co2pc: number | null;
+  energy: number | null;
+  forest: number | null;
+  pm25: number | null;
+}
+
+export type SubScoreKey = "renew" | "carbon" | "co2" | "disclosure" | "climate";
+export type SubScores = Record<SubScoreKey, number | null>;
 
 export interface CountryRecord {
   name: string;
@@ -68,6 +85,13 @@ export interface CountryRecord {
   ifrsS2: IfrsStatus | null;
   esg: string | null;
 
+  /** Observation year per metric (vintage transparency). */
+  years: MetricYears;
+  /** Normalised 0–100 sub-scores behind the composite (null = not available). */
+  subscores: SubScores;
+  /** Which sub-scores actually backed this country's score. */
+  subscoresUsed: SubScoreKey[];
+
   history: History | null;
   /** Optional near-real-time overlay (present only for grid-operator-covered countries). */
   live?: LivePoint | null;
@@ -97,15 +121,21 @@ export interface SourceMeta {
   license: string;
   retrievedAt: string;
   lastUpdated?: string | null;
+  bytes?: number | null;
   metrics: string[];
 }
 
 export interface DatasetMeta {
   generatedAt: string;
+  version: string;
+  contentHash: string;
+  gitSha: string | null;
+  nodeVersion: string;
   yearMin: number;
   yearMax: number;
   territories: number;
   scoreWeights: Record<string, number>;
+  coverage: Record<string, number>;
   sources: SourceMeta[];
 }
 

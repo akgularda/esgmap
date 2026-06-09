@@ -1,8 +1,11 @@
 import * as ESG from "../data/esg";
+import type { Palette } from "../data/esg";
+import { PALETTES } from "../data/esg";
 import type { MetricKey } from "../types";
 import type { ViewId } from "../App";
 import { Icon } from "../ui/Icon";
 import { LAYERS } from "../layers";
+import { fmtDate } from "../lib/format";
 
 function fmtClock(iso: string): string {
   const d = new Date(iso);
@@ -14,15 +17,20 @@ const NAV: { id: ViewId | "map"; label: string; icon: string }[] = [
   { id: "map", label: "Map", icon: "map" },
   { id: "rankings", label: "Rankings", icon: "rank" },
   { id: "trends", label: "Regional trends", icon: "arrowUp" },
-  { id: "compare", label: "Compare", icon: "compare" },
+  { id: "explore", label: "Explore", icon: "compare" },
+  { id: "scorelab", label: "Score Lab", icon: "target" },
+  { id: "validate", label: "Validation", icon: "doc" },
+  { id: "compare", label: "Compare", icon: "layers" },
   { id: "about", label: "Methodology", icon: "info" },
 ];
 
-export function Sidebar({ view, setView, metric, setMetric }: {
+export function Sidebar({ view, setView, metric, setMetric, palette, setPalette }: {
   view: ViewId | null;
   setView: (v: ViewId | null) => void;
   metric: MetricKey;
   setMetric: (m: MetricKey) => void;
+  palette: Palette;
+  setPalette: (p: Palette) => void;
 }) {
   return (
     <aside style={{ width: "var(--sidebar-w)", flex: "0 0 auto", background: "var(--panel)", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", padding: "20px 16px 16px", overflowY: "auto", minHeight: 0 }}>
@@ -85,6 +93,20 @@ export function Sidebar({ view, setView, metric, setMetric }: {
       </div>
 
       <div style={{ flex: 1 }} />
+
+      {/* palette (colourblind-safe / print) */}
+      <div style={{ padding: "0 6px 12px" }}>
+        <div style={{ fontSize: 10, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".09em", marginBottom: 6 }}>Palette</div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {PALETTES.map((p) => (
+            <button key={p.id} onClick={() => setPalette(p.id)} title={p.note}
+              style={{ flex: 1, fontSize: 10.5, padding: "5px 4px", borderRadius: 6, border: "1px solid " + (palette === p.id ? "var(--border-2)" : "transparent"), background: palette === p.id ? "var(--panel-2)" : "transparent", color: palette === p.id ? "var(--text)" : "var(--text-3)" }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ padding: "0 6px", fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.55 }}>
         {ESG.LIVE_COUNT > 0 ? (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -97,10 +119,13 @@ export function Sidebar({ view, setView, metric, setMetric }: {
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
             <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--accent)" }} />
-            Open data · {ESG.META.generatedAt}
+            Open data · {fmtDate(ESG.META.generatedAt)}
           </div>
         )}
         Edition {ESG.YEAR_MAX} · {ESG.META.territories} territories
+        <div style={{ marginTop: 2, fontFamily: "var(--mono)", fontSize: 9.5, opacity: 0.85 }} title={`content hash ${ESG.META.contentHash}`}>
+          v{ESG.META.version}{ESG.META.gitSha ? ` · ${ESG.META.gitSha}` : ""}
+        </div>
       </div>
     </aside>
   );

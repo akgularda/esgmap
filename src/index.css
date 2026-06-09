@@ -42,6 +42,23 @@ body {
 .mono { font-family: var(--mono); }
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
+/* visually hidden but available to screen readers (map data-table fallback, skip link) */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.sr-only-focusable:focus, .sr-only-focusable:focus-within {
+  position: fixed; top: 8px; left: 8px; width: auto; height: auto; margin: 0;
+  padding: 8px 12px; clip: auto; background: var(--panel); color: var(--text);
+  border: 1px solid var(--accent); border-radius: 8px; z-index: 100;
+}
+
+/* print: hide chrome, lay the country panel on white for fact-sheet export */
+@media print {
+  body { overflow: visible; }
+  aside, .esg-range, .no-print { display: none !important; }
+}
+
 /* country path interactions */
 .country { stroke: #0a0e0c; stroke-width: .4px; cursor: pointer; transition: opacity .2s ease; vector-effect: non-scaling-stroke; }
 .country.nodata { cursor: default; }

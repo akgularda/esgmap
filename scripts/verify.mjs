@@ -45,6 +45,19 @@ assert((await page.getByRole("button", { name: "Zoom in" }).count()) > 0, "icon-
 assert((await page.getByRole("button", { name: "Reset view" }).count()) > 0, "reset-view button has an accessible name");
 assert((await page.locator("input[aria-label]").count()) > 0, "search input has an accessible name");
 
+// 2c. Academic features present
+assert((await page.getByRole("button", { name: "Copy link to this view" }).count()) > 0, "deep-link copy button present");
+assert((await page.getByRole("button", { name: "Colourblind-safe" }).count()) > 0, "colourblind-safe palette switch present");
+assert((await page.locator("table caption").count()) > 0, "screen-reader map data table present");
+// palette actually recolours (cividis differs from default)
+const beforeFills = await page.evaluate(() => Array.from(document.querySelectorAll("path.country")).slice(0, 30).map((p) => p.getAttribute("fill")).join());
+await page.getByRole("button", { name: "Colourblind-safe" }).click();
+await page.waitForTimeout(300);
+const afterFills = await page.evaluate(() => Array.from(document.querySelectorAll("path.country")).slice(0, 30).map((p) => p.getAttribute("fill")).join());
+assert(beforeFills !== afterFills, "palette switch recolours the map");
+await page.getByRole("button", { name: "Default" }).click();
+await page.waitForTimeout(200);
+
 // 3. Switch layer → legend label updates
 await page.locator("button:has-text('Carbon intensity')").first().click();
 await page.waitForTimeout(400);
@@ -80,7 +93,10 @@ if (liveActive) {
 for (const [nav, marker, name] of [
   ["Rankings", "sorted by", "rankings"],
   ["Regional trends", "by region", "trends"],
-  ["Methodology", "data provenance", "methodology"],
+  ["Explore", "plotted", "explore"],
+  ["Score Lab", "ranking shift", "scorelab"],
+  ["Validation", "correlation", "validate"],
+  ["Methodology", "provenance", "methodology"],
 ]) {
   await page.locator(`button:has-text("${nav}")`).first().click();
   await page.waitForTimeout(400);

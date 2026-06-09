@@ -3,6 +3,8 @@ export interface LineSeries {
   values: (number | null)[];
   color: string;
   label?: string;
+  /** Per-year mask: true where the value was carried forward (drawn dashed). */
+  interpolated?: boolean[];
 }
 
 export function LineChart({
@@ -53,10 +55,20 @@ export function LineChart({
         const area = single
           ? d + `L${x(lastI).toFixed(1)},${y(min)} L${x(firstI).toFixed(1)},${y(min)} Z`
           : "";
+        // carried-forward (interpolated) segments rendered dashed/honest
+        const dashed: string[] = [];
+        if (s.interpolated) {
+          for (let i = 1; i < s.values.length; i++) {
+            const a = s.values[i - 1], b = s.values[i];
+            if (a == null || b == null) continue;
+            if (s.interpolated[i]) dashed.push(`M${x(i - 1).toFixed(1)},${y(a).toFixed(1)} L${x(i).toFixed(1)},${y(b).toFixed(1)}`);
+          }
+        }
         return (
           <g key={si}>
             {single && <path d={area} fill={s.color} opacity={0.1} />}
             <path d={d.trim()} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            {dashed.length > 0 && <path d={dashed.join(" ")} fill="none" stroke="#0c100e" strokeWidth={2.4} strokeDasharray="2 3" opacity={0.85} />}
             {lastV != null && <circle cx={x(lastI)} cy={y(lastV)} r={3} fill={s.color} stroke="#131815" strokeWidth={1.5} />}
           </g>
         );

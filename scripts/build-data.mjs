@@ -25,6 +25,9 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { execSync } from "node:child_process";
+import { emitArtifacts } from "./emit.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -126,6 +129,7 @@ const num = (s) => {
 // ---- ingestion -------------------------------------------------------------
 async function ingestOwidEnergy() {
   const text = await fetchText(SOURCES.owidEnergy.file);
+  SOURCES.owidEnergy.bytes = text.length;
   const { idx, rows } = parseCsv(text);
   const col = {
     iso: idx.iso_code,
@@ -171,6 +175,7 @@ async function ingestOwidEnergy() {
 
 async function ingestOwidCo2() {
   const text = await fetchText(SOURCES.owidCo2.file);
+  SOURCES.owidCo2.bytes = text.length;
   const { idx, rows } = parseCsv(text);
   const ci = idx.iso_code, cy = idx.year, cv = idx.co2_per_capita;
   const byIso = new Map(); // iso3 -> latest {year,value}
@@ -222,48 +227,74 @@ function disclosureSubScore(meta) {
   return 100 * (0.34 * paris + 0.33 * netZero + 0.33 * ifrs);
 }
 
+// Normalised 0–100 sub-scores (higher = better) for one country. Each is null
+// when its input is missing, so the UI/score-lab can renormalise transparently.
+function subScores(rec, meta) {
+  return {
+    renew: rec.renewable == null ? null : clamp(rec.renewable, 0, 100),
+    carbon: rec.carbon == null ? null : 100 * (1 - clamp(rec.carbon / 800, 0, 1)),
+    co2: rec.co2pc == null ? null : 100 * (1 - clamp(rec.co2pc / 25, 0, 1)),
+    disclosure: disclosureSubScore(meta),
+    climate: rec.climate == null ? null : 100 - clamp(rec.climate, 0, 100),
+  };
+}
+
+// Weighted, renormalised-over-available composite. Returns {score, subscores, used}.
 function deriveScore(rec, meta) {
-  const subs = [];
-  if (rec.renewable != null) subs.push(["renew", clamp(rec.renewable, 0, 100)]);
-  if (rec.carbon != null) subs.push(["carbon", 100 * (1 - clamp(rec.carbon / 800, 0, 1))]);
-  if (rec.co2pc != null) subs.push(["co2", 100 * (1 - clamp(rec.co2pc / 25, 0, 1))]);
-  const disc = disclosureSubScore(meta);
-  if (disc != null) subs.push(["disclosure", disc]);
-  if (rec.climate != null) subs.push(["climate", 100 - clamp(rec.climate, 0, 100)]);
-  if (!subs.length) return null;
+  const subs = subScores(rec, meta);
+  const rounded = {};
   let wsum = 0, acc = 0;
-  for (const [k, v] of subs) { const w = SCORE_WEIGHTS[k]; wsum += w; acc += w * v; }
-  return Math.round(acc / wsum);
+  const used = [];
+  for (const k of Object.keys(SCORE_WEIGHTS)) {
+    const v = subs[k];
+    rounded[k] = v == null ? null : Math.round(v * 10) / 10;
+    if (v == null) continue;
+    used.push(k);
+    wsum += SCORE_WEIGHTS[k];
+    acc += SCORE_WEIGHTS[k] * v;
+  }
+  return { score: used.length ? Math.round(acc / wsum) : null, subscores: rounded, subscoresUsed: used };
 }
 
 // ---- history (real annual points, gap-filled by carry-forward) -------------
+// Emits parallel `interpolated` masks so the UI can mark carried-forward years,
+// and the last genuinely-observed year per metric (the headline's true vintage).
 function buildHistory(energyByYear, yearMax) {
   if (!energyByYear) return null;
   const years = [], renewable = [], carbon = [];
+  const interpolated = { renewable: [], carbon: [] };
   let lastRen = null, lastCarb = null;
+  let lastRealRen = null, lastRealCarb = null;
   let gapFilled = false, any = false;
   for (let y = YEAR_MIN; y <= yearMax; y++) {
     const e = energyByYear.get(y);
-    let rv = e && e.ren != null ? e.ren : null;
-    let cv = e && e.carb != null ? e.carb : null;
-    if (rv == null && lastRen != null) { rv = lastRen; gapFilled = true; }
-    if (cv == null && lastCarb != null) { cv = lastCarb; gapFilled = true; }
+    const realRen = e && e.ren != null ? e.ren : null;
+    const realCarb = e && e.carb != null ? e.carb : null;
+    let rv = realRen, cv = realCarb;
+    let rInterp = false, cInterp = false;
+    if (rv == null && lastRen != null) { rv = lastRen; gapFilled = true; rInterp = true; }
+    if (cv == null && lastCarb != null) { cv = lastCarb; gapFilled = true; cInterp = true; }
+    if (realRen != null) { lastRealRen = y; }
+    if (realCarb != null) { lastRealCarb = y; }
     if (rv != null) lastRen = rv;
     if (cv != null) lastCarb = cv;
     if (rv != null || cv != null) any = true;
     years.push(y);
     renewable.push(rv == null ? null : round1(rv));
     carbon.push(cv == null ? null : Math.round(cv));
+    interpolated.renewable.push(rv == null ? false : rInterp);
+    interpolated.carbon.push(cv == null ? false : cInterp);
   }
   if (!any) return null;
-  return { years, renewable, carbon, gapFilled };
+  return { years, renewable, carbon, interpolated, gapFilled, lastRealYear: { renewable: lastRealRen, carbon: lastRealCarb } };
 }
 
+// Latest available {value, year} for a metric in an OWID-energy year map.
 function latestUpTo(byYear, yearMax, key) {
   if (!byYear) return null;
   for (let y = yearMax; y >= YEAR_MIN; y--) {
     const e = byYear.get(y);
-    if (e && e[key] != null) return e[key];
+    if (e && e[key] != null) return { value: e[key], year: y };
   }
   return null;
 }
@@ -300,11 +331,21 @@ async function main() {
     const history = buildHistory(eByYear, yearMax);
     const renewable = history ? history.renewable[history.renewable.length - 1] : null;
     const carbon = history ? history.carbon[history.carbon.length - 1] : null;
-    const energyPc = latestUpTo(eByYear, yearMax, "energy");
-    const mix = latestUpTo(eByYear, yearMax, "mix");
-    const co2pc = co2.get(m.iso3) ? round1(co2.get(m.iso3).value) : null;
-    const forestV = forest.byIso.get(m.iso3) ? Math.round(forest.byIso.get(m.iso3).value * 10) / 10 : null;
-    const pm25V = pm25.byIso.get(m.iso3) ? Math.round(pm25.byIso.get(m.iso3).value * 10) / 10 : null;
+    const energyRes = latestUpTo(eByYear, yearMax, "energy");
+    const mixRes = latestUpTo(eByYear, yearMax, "mix");
+    const co2res = co2.get(m.iso3) || null;
+    const forestRes = forest.byIso.get(m.iso3) || null;
+    const pm25Res = pm25.byIso.get(m.iso3) || null;
+
+    // observation year per metric (the value's real vintage, ≠ the edition year)
+    const years = {
+      renewable: history ? history.lastRealYear.renewable : null,
+      carbon: history ? history.lastRealYear.carbon : null,
+      co2pc: co2res ? co2res.year : null,
+      energy: energyRes ? energyRes.year : null,
+      forest: forestRes ? forestRes.year : null,
+      pm25: pm25Res ? pm25Res.year : null,
+    };
 
     const rec = {
       name: m.name,
@@ -316,11 +357,11 @@ async function main() {
       // real numeric headline metrics
       renewable,
       carbon,
-      co2pc,
-      energy: energyPc == null ? null : Math.round(energyPc),
-      mix: mix ?? null,
-      pm25: pm25V,
-      forest: forestV,
+      co2pc: co2res ? round1(co2res.value) : null,
+      energy: energyRes ? Math.round(energyRes.value) : null,
+      mix: mixRes ? mixRes.value : null,
+      pm25: pm25Res ? Math.round(pm25Res.value * 10) / 10 : null,
+      forest: forestRes ? Math.round(forestRes.value * 10) / 10 : null,
       climate: m.climate ?? null,
       ev: m.ev ?? null,
       // curated policy / disclosure (rich tier)
@@ -331,33 +372,60 @@ async function main() {
       ifrsS1: m.ifrsS1 ?? null,
       ifrsS2: m.ifrsS2 ?? null,
       esg: m.esg ?? null,
+      years,
       history,
     };
-    rec.score = deriveScore(rec, m);
+    const sc = deriveScore(rec, m);
+    rec.score = sc.score;
+    rec.subscores = sc.subscores;
+    rec.subscoresUsed = sc.subscoresUsed;
     return rec;
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   const covered = (k) => countries.filter((c) => c[k] != null).length;
+
+  // Reproducibility: a content hash over the data (not the build clock), a pinned
+  // edition tag, and the git SHA, so "ESGMap <version>" is a verifiable identifier.
+  const contentHash = createHash("sha256").update(JSON.stringify(countries)).digest("hex");
+  let gitSha = null;
+  try { gitSha = execSync("git rev-parse --short HEAD", { cwd: root }).toString().trim(); } catch { /* not a repo / CI shallow */ }
+  const version = `${yearMax}.${contentHash.slice(0, 7)}`;
+
+  const sources = [
+    { ...pick(SOURCES.owidEnergy), retrievedAt, bytes: SOURCES.owidEnergy.bytes ?? null, metrics: ["renewable", "carbon", "energy", "mix", "history"] },
+    { ...pick(SOURCES.owidCo2), retrievedAt, bytes: SOURCES.owidCo2.bytes ?? null, metrics: ["co2pc"] },
+    { ...pick(SOURCES.wbForest), retrievedAt, lastUpdated: forest.lastUpdated, metrics: ["forest"] },
+    { ...pick(SOURCES.wbPm25), retrievedAt, lastUpdated: pm25.lastUpdated, metrics: ["pm25"] },
+    { ...pick(SOURCES.curated), retrievedAt, metrics: ["region", "capital", "paris", "ndc", "netZero", "ifrsS1", "ifrsS2", "ev", "climate"] },
+  ];
+
   const out = {
     meta: {
       generatedAt: retrievedAt,
+      version,
+      contentHash,
+      gitSha,
+      nodeVersion: process.version,
       yearMin: YEAR_MIN,
       yearMax,
       territories: countries.length,
       scoreWeights: SCORE_WEIGHTS,
-      sources: [
-        { ...pick(SOURCES.owidEnergy), retrievedAt, metrics: ["renewable", "carbon", "energy", "mix", "history"] },
-        { ...pick(SOURCES.owidCo2), retrievedAt, metrics: ["co2pc"] },
-        { ...pick(SOURCES.wbForest), retrievedAt, lastUpdated: forest.lastUpdated, metrics: ["forest"] },
-        { ...pick(SOURCES.wbPm25), retrievedAt, lastUpdated: pm25.lastUpdated, metrics: ["pm25"] },
-        { ...pick(SOURCES.curated), retrievedAt, metrics: ["region", "capital", "paris", "ndc", "netZero", "ifrsS1", "ifrsS2", "ev", "climate"] },
-      ],
+      coverage: Object.fromEntries(["renewable", "carbon", "co2pc", "energy", "mix", "forest", "pm25", "score"].map((k) => [k, covered(k)])),
+      sources,
     },
     countries,
   };
 
+  const countriesPath = resolve(root, "src", "data", "countries.json");
+  let prev = null;
+  try { prev = JSON.parse(readFileSync(countriesPath, "utf8")); } catch { /* first run */ }
+
   mkdirSync(resolve(root, "src", "data"), { recursive: true });
-  writeFileSync(resolve(root, "src", "data", "countries.json"), JSON.stringify(out) + "\n");
+  writeFileSync(countriesPath, JSON.stringify(out) + "\n");
+
+  // Derived, citable artifacts: CSV/JSON downloads, codebook, JSON Schema,
+  // per-resource API files, build manifest, and a revision changelog.
+  emitArtifacts(out, { root, SCORE_WEIGHTS, prev });
 
   console.log("\n✓ wrote src/data/countries.json");
   console.log(`  territories : ${countries.length}`);

@@ -67,12 +67,13 @@ export interface WorldMapProps {
   onSelect: (rec: CountryRecord | null, name: string) => void;
   onHover?: (rec: CountryRecord | null, name: string | null) => void;
   flyTo: { name: string; token: number } | null;
+  palette?: import("../data/esg").Palette;
 }
 
 interface Tip { x: number; y: number; rec: CountryRecord | null; name: string }
 
 export function WorldMap(props: WorldMapProps) {
-  const { metric, year, selected, pinned, flyTo } = props;
+  const { metric, year, selected, pinned, flyTo, palette = "default" } = props;
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -89,7 +90,7 @@ export function WorldMap(props: WorldMapProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [tip, setTip] = useState<Tip | null>(null);
 
-  const scales = useMemo(() => ESG.buildScales(), []);
+  const scales = useMemo(() => ESG.buildScales(palette), [palette]);
 
   const colorOf = useCallback((rec: CountryRecord | null) => {
     const p = propsRef.current;
@@ -284,7 +285,7 @@ export function WorldMap(props: WorldMapProps) {
 
   return (
     <div ref={wrapRef} style={{ position: "absolute", inset: 0, background: "var(--bg-map)", overflow: "hidden" }}>
-      <svg ref={svgRef} width="100%" height="100%" style={{ display: "block", cursor: "grab" }}>
+      <svg ref={svgRef} width="100%" height="100%" style={{ display: "block", cursor: "grab" }} aria-hidden="true">
         <defs>
           <clipPath id="esg-mapclip"><rect ref={clipRectRef} x={0} y={0} width={0} height={0} /></clipPath>
         </defs>

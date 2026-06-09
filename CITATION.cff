@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: "ESGMap — Global Sustainability Atlas"
+message: "If you use ESGMap or its dataset, please cite it and the upstream data sources."
+type: dataset
+authors:
+  - name: "ESGMap contributors"
+repository-code: "https://github.com/akgularda/esgmap"
+url: "https://akgularda.github.io/esgmap/"
+abstract: >-
+  An interactive, dark-themed world-map atlas of national sustainability
+  indicators (renewable electricity, grid carbon intensity, CO2 per capita,
+  air quality, forest cover, climate-risk exposure, and a documented composite
+  score), wired to real open data from Our World in Data and the World Bank,
+  with an hourly near-real-time grid-operator overlay. Application code is MIT;
+  the dataset is released under CC BY 4.0. Headline numeric values are ingested
+  reproducibly; slow-moving policy fields are a curated, dated layer.
+keywords:
+  - sustainability
+  - ESG
+  - renewable energy
+  - climate
+  - open data
+  - data visualization
+license: MIT
+license-url: "https://akgularda.github.io/esgmap/"

@@ -1,0 +1,249 @@
+{
+  "dataset": "ESGMap — Global Sustainability Atlas",
+  "version": "2025.f27eab0",
+  "generatedAt": "2026-06-09",
+  "license": "CC BY 4.0 (data); MIT (code)",
+  "temporalCoverage": "2000–2025",
+  "nullSemantics": "null / 'NA' means no upstream value — never fabricated, never 0.",
+  "scoreWeights": {
+    "renew": 0.3,
+    "carbon": 0.25,
+    "co2": 0.2,
+    "disclosure": 0.15,
+    "climate": 0.1
+  },
+  "fields": [
+    {
+      "key": "iso3",
+      "label": "ISO-3166 alpha-3 code",
+      "unit": "",
+      "type": "string",
+      "source": "reference"
+    },
+    {
+      "key": "name",
+      "label": "Country (Natural Earth name)",
+      "unit": "",
+      "type": "string",
+      "source": "reference"
+    },
+    {
+      "key": "region",
+      "label": "World region",
+      "unit": "",
+      "type": "string",
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "tier",
+      "label": "Coverage tier (rich = full policy detail)",
+      "unit": "",
+      "type": "enum",
+      "domain": [
+        "rich",
+        "base"
+      ],
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "capital",
+      "label": "Capital city",
+      "unit": "",
+      "type": "string",
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "renewable",
+      "label": "Renewable electricity share",
+      "unit": "%",
+      "type": "number",
+      "source": "owid-energy",
+      "betterHigh": true,
+      "hasYear": true
+    },
+    {
+      "key": "carbon",
+      "label": "Grid carbon intensity",
+      "unit": "gCO2/kWh",
+      "type": "number",
+      "source": "owid-energy",
+      "betterHigh": false,
+      "hasYear": true
+    },
+    {
+      "key": "co2pc",
+      "label": "CO2 emissions per capita",
+      "unit": "t/yr",
+      "type": "number",
+      "source": "owid-co2",
+      "betterHigh": false,
+      "hasYear": true
+    },
+    {
+      "key": "energy",
+      "label": "Electricity use per capita",
+      "unit": "kWh/yr",
+      "type": "number",
+      "source": "owid-energy",
+      "hasYear": true
+    },
+    {
+      "key": "forest",
+      "label": "Forest cover",
+      "unit": "% land",
+      "type": "number",
+      "source": "wb-forest",
+      "betterHigh": true,
+      "hasYear": true
+    },
+    {
+      "key": "pm25",
+      "label": "Air quality (PM2.5 annual mean)",
+      "unit": "µg/m³",
+      "type": "number",
+      "source": "wb-pm25",
+      "betterHigh": false,
+      "hasYear": true
+    },
+    {
+      "key": "climate",
+      "label": "Climate-risk exposure (ND-GAIN)",
+      "unit": "/100",
+      "type": "number",
+      "source": "esgmap-curated",
+      "betterHigh": false
+    },
+    {
+      "key": "ev",
+      "label": "EV share of new car sales",
+      "unit": "%",
+      "type": "number",
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "score",
+      "label": "ESGMap sustainability composite",
+      "unit": "/100",
+      "type": "number",
+      "source": "derived",
+      "betterHigh": true,
+      "transform": "weighted, renormalised blend of normalised renewable / inverted carbon / inverted CO2pc / disclosure / inverted climate sub-scores"
+    },
+    {
+      "key": "paris",
+      "label": "Paris Agreement status",
+      "unit": "",
+      "type": "enum",
+      "domain": [
+        "ratified",
+        "signed",
+        "withdrawn",
+        "none"
+      ],
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "netZero",
+      "label": "Net-zero target year",
+      "unit": "year",
+      "type": "number",
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "ifrsS1",
+      "label": "IFRS S1 adoption",
+      "unit": "",
+      "type": "enum",
+      "domain": [
+        "mandatory",
+        "adopting",
+        "roadmap",
+        "consulting",
+        "none"
+      ],
+      "source": "esgmap-curated"
+    },
+    {
+      "key": "ifrsS2",
+      "label": "IFRS S2 adoption",
+      "unit": "",
+      "type": "enum",
+      "domain": [
+        "mandatory",
+        "adopting",
+        "roadmap",
+        "consulting",
+        "none"
+      ],
+      "source": "esgmap-curated"
+    }
+  ],
+  "sources": [
+    {
+      "id": "owid-energy",
+      "label": "Our World in Data — Energy",
+      "url": "https://github.com/owid/energy-data",
+      "license": "Creative Commons BY 4.0",
+      "retrievedAt": "2026-06-09",
+      "bytes": 9229369,
+      "metrics": [
+        "renewable",
+        "carbon",
+        "energy",
+        "mix",
+        "history"
+      ]
+    },
+    {
+      "id": "owid-co2",
+      "label": "Our World in Data — CO₂ and Greenhouse Gas Emissions",
+      "url": "https://github.com/owid/co2-data",
+      "license": "Creative Commons BY 4.0",
+      "retrievedAt": "2026-06-09",
+      "bytes": 14377942,
+      "metrics": [
+        "co2pc"
+      ]
+    },
+    {
+      "id": "wb-forest",
+      "label": "World Bank — Forest area (% of land), FAO FRA",
+      "url": "https://data.worldbank.org/indicator/AG.LND.FRST.ZS",
+      "license": "Creative Commons BY 4.0",
+      "retrievedAt": "2026-06-09",
+      "lastUpdated": "2026-04-08",
+      "metrics": [
+        "forest"
+      ]
+    },
+    {
+      "id": "wb-pm25",
+      "label": "World Bank — PM2.5 mean annual exposure (WHO / IHME)",
+      "url": "https://data.worldbank.org/indicator/EN.ATM.PM25.MC.M3",
+      "license": "Creative Commons BY 4.0",
+      "retrievedAt": "2026-06-09",
+      "lastUpdated": "2026-04-08",
+      "metrics": [
+        "pm25"
+      ]
+    },
+    {
+      "id": "esgmap-curated",
+      "label": "ESGMap curated policy layer — UNFCCC NDC Registry; Climate Watch (WRI); Net Zero Tracker (Oxford/ECIU); IFRS Foundation jurisdiction profiles; IEA Global EV Outlook; ND-GAIN Country Index",
+      "url": "https://github.com/",
+      "license": "Compiled by ESGMap from cited public sources",
+      "retrievedAt": "2026-06-09",
+      "metrics": [
+        "region",
+        "capital",
+        "paris",
+        "ndc",
+        "netZero",
+        "ifrsS1",
+        "ifrsS2",
+        "ev",
+        "climate"
+      ]
+    }
+  ]
+}

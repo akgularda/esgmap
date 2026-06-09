@@ -108,6 +108,37 @@ npm run build:live                       # UK only (no token)
 EIA_KEY=... ENTSOE_TOKEN=... npm run build:live   # full coverage
 ```
 
+## For researchers & educators
+
+ESGMap is built to be cited, reused, and taught — not just viewed:
+
+- **Download the data** (Methodology → Download data, or `public/downloads/`): wide CSV, tidy/long
+  CSV (R/pandas-ready), full history CSV with an `interpolated` flag, JSON twins, a machine-readable
+  **codebook** (`data-dictionary.json`), and a **JSON Schema** (`schema/countries.schema.json`).
+  Missing values are an explicit `NA` — never fabricated, never 0.
+- **Static "API"** — addressable per-resource JSON at `api/country/<ISO3>.json` and
+  `api/metric/<key>.json` (+ `api/index.json`), emitted at build time. No backend.
+- **Cite correctly** — one-click **BibTeX / RIS / APA** in Methodology and a per-country "Cite"
+  button, crediting ESGMap and every upstream source with retrieval dates. `CITATION.cff` at the root.
+- **Deep-link permalinks** — the full app state (layer, year, country, pins, view, palette) lives in
+  the URL hash, so any view is a shareable, citable, embeddable link ("Link" button, top-center).
+- **Provenance & vintage transparency** — every value shows its **observation year** (forest may be
+  2023 while renewables are 2025), carried-forward history is drawn **dashed**, and each score shows
+  "scored on N/5 indicators". A content-hash + version + git SHA + `build-manifest.json` make each
+  edition verifiable and reproducible (`npm run build:data`).
+- **Score Lab** — re-weight the composite with live sliders and watch the ranking move (the answer to
+  "is your ranking an artifact of the weights?"). Never overwrites the published score.
+- **Validation** — Spearman correlation matrix among the sub-indicators (multicollinearity) and
+  convergent validity vs. an external index (Yale EPI), computed client-side.
+- **Explore** — scatter any two indicators, coloured by region, with explicit missing-data accounting.
+- **Publication-ready** — colourblind-safe (cividis) and greyscale palettes; print stylesheet;
+  per-country JSON/print export.
+- **Accessible & offline** — screen-reader data-table fallback for the map, keyboard focus rings,
+  labelled controls, skip link; installable PWA with a service worker for offline use.
+- **Governance & ethics** — [`GOVERNANCE.md`](GOVERNANCE.md) states the maintenance model, editorial
+  choices, a no-conflict-of-interest / non-commercial declaration, and the in-app **Responsible use**
+  note on the normative nature of the ranking.
+
 ## Architecture
 
 ```
