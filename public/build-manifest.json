@@ -1,8 +1,8 @@
 {
   "dataset": "ESGMap",
-  "version": "2025.f27eab0",
-  "contentHash": "f27eab0f9a1be6c46ba13766e7cd47fd0527a9b4322e834151e4761108b76cad",
-  "gitSha": "8babb4c",
+  "version": "2025.bc8f6c8",
+  "contentHash": "bc8f6c856d92b7d8fac8bfe4bb236dbca4d6fea4deca1f1fcab835a2ad661373",
+  "gitSha": "84e1e86",
   "nodeVersion": "v24.11.0",
   "generatedAt": "2026-06-09",
   "yearMin": 2000,

@@ -29,19 +29,24 @@ export function toHash(s: AppState): string {
   return q ? "#" + q : "";
 }
 
+const VALID_METRICS = new Set<string>(["renewable", "carbon", "co2pc", "pm25", "forest", "climate", "score"]);
+const VALID_VIEWS = new Set<string>(["rankings", "trends", "compare", "about", "scorelab", "validate", "explore"]);
+const VALID_PALETTES = new Set<string>(["default", "cividis", "mono"]);
+
 export function parseHash(hash: string): Partial<AppState> {
   const out: Partial<AppState> = {};
   const raw = hash.replace(/^#/, "");
   if (!raw) return out;
-  const p = new URLSearchParams(raw);
-  if (p.get("m")) out.metric = p.get("m") as MetricKey;
-  const y = p.get("y");
-  if (y && /^\d{4}$/.test(y)) out.year = +y;
+  let p: URLSearchParams;
+  try { p = new URLSearchParams(raw); } catch { return out; }
+  // Validate every param against the known set — a garbage permalink must degrade
+  // gracefully (ignored), never crash the app to a blank page.
+  const m = p.get("m"); if (m && VALID_METRICS.has(m)) out.metric = m as MetricKey;
+  const y = p.get("y"); if (y && /^\d{4}$/.test(y)) out.year = +y;
   if (p.get("c")) out.selected = p.get("c");
-  const pin = p.get("pin");
-  if (pin) out.pins = pin.split("~").filter(Boolean).slice(0, 2);
-  if (p.get("v")) out.view = p.get("v") as ViewId;
-  if (p.get("p")) out.palette = p.get("p") as Palette;
+  const pin = p.get("pin"); if (pin) out.pins = pin.split("~").filter(Boolean).slice(0, 2);
+  const v = p.get("v"); if (v && VALID_VIEWS.has(v)) out.view = v as ViewId;
+  const pal = p.get("p"); if (pal && VALID_PALETTES.has(pal)) out.palette = pal as Palette;
   return out;
 }
 

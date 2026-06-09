@@ -16,6 +16,15 @@ const KEYS: { k: SubScoreKey; label: string }[] = [
   { k: "climate", label: "Climate risk" },
 ];
 
+// Standard competition ("1224") ranking: items with equal value share the lower rank.
+function tieRanks(items: { iso: string; v: number }[]): Record<string, number> {
+  const sorted = items.slice().sort((a, b) => b.v - a.v);
+  const rank: Record<string, number> = {};
+  let prevV: number | null = null, prevR = 0;
+  sorted.forEach((x, i) => { const r = prevV != null && x.v === prevV ? prevR : i + 1; rank[x.iso] = r; prevV = x.v; prevR = r; });
+  return rank;
+}
+
 const PUBLISHED = ESG.META.scoreWeights as Record<SubScoreKey, number>;
 const PRESETS: Record<string, Record<SubScoreKey, number>> = {
   Published: PUBLISHED,
@@ -30,13 +39,9 @@ export function ScoreLabOverlay({ scales, onPick, onClose }: {
 }) {
   const [w, setW] = useState<Record<SubScoreKey, number>>({ ...PUBLISHED });
 
-  const published = useMemo(() => {
-    const ranked = ESG.all.filter((c) => c.score != null).slice()
-      .sort((a, b) => (b.score! - a.score!));
-    const rank: Record<string, number> = {};
-    ranked.forEach((c, i) => (rank[c.iso3] = i + 1));
-    return rank;
-  }, []);
+  // Standard competition ranking (ties share a rank) so the Published preset shows
+  // zero spurious movement and tied scores don't swap arbitrarily.
+  const published = useMemo(() => tieRanks(ESG.all.filter((c) => c.score != null).map((c) => ({ iso: c.iso3, v: c.score! }))), []);
 
   const ranked = useMemo(() => {
     return ESG.all
@@ -44,6 +49,7 @@ export function ScoreLabOverlay({ scales, onPick, onClose }: {
       .filter((x) => x.s != null)
       .sort((a, b) => b.s! - a.s!);
   }, [w]);
+  const curRank = useMemo(() => tieRanks(ranked.map((x) => ({ iso: x.c.iso3, v: x.s! }))), [ranked]);
 
   const setKey = (k: SubScoreKey, val: number) => setW((prev) => ({ ...prev, [k]: val }));
   const sum = KEYS.reduce((s, { k }) => s + w[k], 0) || 1;
@@ -85,7 +91,8 @@ export function ScoreLabOverlay({ scales, onPick, onClose }: {
           {ranked.map(({ c, s }, i) => {
             const newRank = i + 1;
             const oldRank = published[c.iso3];
-            const shift = oldRank ? oldRank - newRank : 0;
+            // movement compares tie-aware ranks so equal scores never spuriously swap
+            const shift = oldRank ? oldRank - curRank[c.iso3] : 0;
             return (
               <button key={c.iso3} onClick={() => onPick(c)} style={{
                 display: "grid", gridTemplateColumns: "26px 1fr 58px 48px", alignItems: "center", gap: 10, width: "100%",

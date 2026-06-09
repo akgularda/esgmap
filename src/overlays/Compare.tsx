@@ -98,8 +98,8 @@ export function CompareOverlay({ pinned, scales, onClose, onRemove }: {
         {a.history && b.history && (
           <LineChart width={560} height={150}
             series={[
-              { years: a.history.years, values: a.history[cm], color: H_COLOR.a, label: a.name },
-              { years: b.history.years, values: b.history[cm], color: H_COLOR.b, label: b.name },
+              { years: a.history.years, values: a.history[cm], color: H_COLOR.a, label: a.name, interpolated: a.history.interpolated[cm] },
+              { years: b.history.years, values: b.history[cm], color: H_COLOR.b, label: b.name, interpolated: b.history.interpolated[cm] },
             ]}
             yMax={cm === "renewable" ? 100 : carbMax} />
         )}

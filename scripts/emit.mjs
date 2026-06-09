@@ -45,7 +45,7 @@ const cell = (v) => {
 };
 const toCsv = (header, rows) => [header.join(","), ...rows.map((r) => r.map(cell).join(","))].join("\n") + "\n";
 
-export function emitArtifacts(out, { root, SCORE_WEIGHTS, prev }) {
+export function emitArtifacts(out, { root, SCORE_WEIGHTS, prev, prevChangelog }) {
   const { meta, countries } = out;
   const pub = (...p) => resolve(root, "public", ...p);
   const ensure = (...p) => { mkdirSync(resolve(root, "public", ...p), { recursive: true }); };
@@ -75,7 +75,8 @@ export function emitArtifacts(out, { root, SCORE_WEIGHTS, prev }) {
   const tidyRows = [];
   for (const c of countries) {
     for (const f of NUMERIC) {
-      tidyRows.push([c.iso3, c.name, c.region, f.key, c[f.key], c.years?.[f.key] ?? meta.yearMax, f.unit, f.source]);
+      // only stamp a year on metrics that actually carry an observation vintage
+      tidyRows.push([c.iso3, c.name, c.region, f.key, c[f.key], f.hasYear ? (c.years?.[f.key] ?? null) : null, f.unit, f.source]);
     }
   }
   writeFileSync(pub("downloads", "esgmap-tidy-long.csv"), provenanceHeader + toCsv(tidyCols, tidyRows));
@@ -157,7 +158,7 @@ export function emitArtifacts(out, { root, SCORE_WEIGHTS, prev }) {
   for (const f of NUMERIC) {
     writeFileSync(pub("api", "metric", `${f.key}.json`), JSON.stringify({
       metric: f.key, label: f.label, unit: f.unit, source: f.source, version: meta.version,
-      values: countries.map((c) => ({ iso3: c.iso3, name: c.name, value: c[f.key], year: c.years?.[f.key] ?? meta.yearMax })),
+      values: countries.map((c) => ({ iso3: c.iso3, name: c.name, value: c[f.key], year: f.hasYear ? (c.years?.[f.key] ?? null) : null })),
     }) + "\n");
   }
   writeFileSync(pub("api", "index.json"), JSON.stringify({
@@ -183,20 +184,22 @@ export function emitArtifacts(out, { root, SCORE_WEIGHTS, prev }) {
     reproduce: "npm ci && npm run build:data — re-fetches the cited feeds; the contentHash verifies an identical edition.",
   }, null, 2) + "\n");
 
-  // ---- revision changelog (diff vs the previous edition) ----
-  const changelog = buildChangelog(prev, out);
+  // ---- revision changelog (diff vs the previous edition, chained) ----
+  const changelog = buildChangelog(prev, out, prevChangelog);
   writeFileSync(resolve(root, "src", "data", "changelog.json"), JSON.stringify(changelog) + "\n");
 
   const n = countries.length;
   console.log(`  ↳ emitted: 3 download tables (+JSON), codebook, JSON Schema, ${n} country + ${NUMERIC.length} metric API files, build-manifest, changelog`);
 }
 
-function buildChangelog(prev, out) {
+function buildChangelog(prev, out, prevChangelog) {
   const entry = {
     version: out.meta.version, generatedAt: out.meta.generatedAt, yearMax: out.meta.yearMax,
     previousVersion: prev?.meta?.version ?? null, added: [], removed: [], largestDeltas: [],
   };
-  if (!prev?.countries) return { editions: [entry] };
+  // Chain from the previously-written changelog.json (where editions actually live).
+  const prevEditions = Array.isArray(prevChangelog?.editions) ? prevChangelog.editions : [];
+  if (!prev?.countries) return { editions: [entry, ...prevEditions].slice(0, 20) };
   const prevByIso = Object.fromEntries(prev.countries.map((c) => [c.iso3, c]));
   const nowByIso = Object.fromEntries(out.countries.map((c) => [c.iso3, c]));
   entry.added = out.countries.filter((c) => !prevByIso[c.iso3]).map((c) => c.name);
@@ -212,6 +215,7 @@ function buildChangelog(prev, out) {
     }
   }
   entry.largestDeltas = deltas.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 25);
-  const prevEditions = Array.isArray(prev.__editions) ? prev.__editions : [];
-  return { editions: [entry, ...prevEditions].slice(0, 20) };
+  // Don't duplicate the head entry if rebuilding the same edition.
+  const tail = prevEditions.filter((e) => e.version !== entry.version);
+  return { editions: [entry, ...tail].slice(0, 20) };
 }

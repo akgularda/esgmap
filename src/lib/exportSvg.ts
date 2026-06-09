@@ -1,7 +1,7 @@
 /* ESGMap — figure export. Serialises a live <svg> to a standalone, self-attributing
- * SVG (vector, print-ready) and rasterises to high-res PNG. Inlines computed colours
- * and the font, and appends a Source/edition footer so attribution travels with the
- * figure. */
+ * SVG (vector, print-ready) and rasterises to high-res PNG. Colours already live as
+ * inline attributes on the cloned nodes (the map/charts set fills imperatively), so
+ * they travel with the figure; a Source/edition footer is appended for attribution. */
 import { META } from "../data/esg";
 
 const FONT = `@font-face{font-family:'IBM Plex Sans';}`;

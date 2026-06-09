@@ -9,6 +9,12 @@ const AUTHOR = "ESGMap contributors";
 const TITLE = "ESGMap — Global Sustainability Atlas";
 const YEAR = () => META.generatedAt.slice(0, 4);
 
+// Escape LaTeX/BibTeX special characters so a source label containing e.g.
+// "(% of land)" can't comment-truncate the citation under bibtex/pdflatex.
+function texEscape(s: string): string {
+  return s.replace(/([&%$#_{}])/g, "\\$1").replace(/~/g, "\\textasciitilde{}").replace(/\^/g, "\\textasciicircum{}");
+}
+
 export type CiteFormat = "bibtex" | "ris" | "apa";
 
 function note(country?: CountryRecord | null): string {
@@ -26,12 +32,12 @@ export function citation(format: CiteFormat, url: string, country?: CountryRecor
     const key = `esgmap${YEAR()}${country ? country.iso3 : ""}`;
     return [
       `@misc{${key},`,
-      `  author       = {{${AUTHOR}}},`,
-      `  title        = {{${TITLE}}},`,
+      `  author       = {{${texEscape(AUTHOR)}}},`,
+      `  title        = {{${texEscape(TITLE)}}},`,
       `  year         = {${YEAR()}},`,
-      `  version      = {${ver}},`,
+      `  version      = {${texEscape(ver)}},`,
       `  howpublished = {\\url{${url}}},`,
-      `  note         = {${note(country)}Edition ${META.yearMax}. Underlying sources: ${srcLine}. Accessed ${accessed}.}`,
+      `  note         = {${texEscape(note(country) + `Edition ${META.yearMax}. Underlying sources: ${srcLine}. Accessed ${accessed}.`)}}`,
       `}`,
     ].join("\n");
   }

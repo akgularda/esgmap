@@ -90,7 +90,7 @@ export default function App() {
         <MapDataTable metric={metric} year={year} />
 
         {/* top-left search */}
-        <div id="esg-search" style={{ position: "absolute", top: 18, left: 18, zIndex: 12 }}>
+        <div id="esg-search" tabIndex={-1} style={{ position: "absolute", top: 18, left: 18, zIndex: 12, outline: "none" }}>
           <SearchBox onPick={selectRec} metric={metric} year={year} scales={scales} />
         </div>
 

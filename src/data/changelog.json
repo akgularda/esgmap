@@ -1,1 +1,1 @@
-{"editions":[{"version":"2025.f27eab0","generatedAt":"2026-06-09","yearMax":2025,"previousVersion":null,"added":[],"removed":[],"largestDeltas":[]}]}
+{"editions":[{"version":"2025.bc8f6c8","generatedAt":"2026-06-09","yearMax":2025,"previousVersion":"2025.f27eab0","added":[],"removed":[],"largestDeltas":[{"iso3":"BEL","name":"Belgium","metric":"score","from":65,"to":66,"delta":1}]},{"version":"2025.f27eab0","generatedAt":"2026-06-09","yearMax":2025,"previousVersion":null,"added":[],"removed":[],"largestDeltas":[]}]}

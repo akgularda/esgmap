@@ -251,7 +251,9 @@ function deriveScore(rec, meta) {
     if (v == null) continue;
     used.push(k);
     wsum += SCORE_WEIGHTS[k];
-    acc += SCORE_WEIGHTS[k] * v;
+    // accumulate over the SAME rounded sub-scores we emit, so the published score
+    // is exactly reproducible client-side (scoreWith) — e.g. the Score Lab preset.
+    acc += SCORE_WEIGHTS[k] * rounded[k];
   }
   return { score: used.length ? Math.round(acc / wsum) : null, subscores: rounded, subscoresUsed: used };
 }
@@ -417,15 +419,16 @@ async function main() {
   };
 
   const countriesPath = resolve(root, "src", "data", "countries.json");
-  let prev = null;
+  let prev = null, prevChangelog = null;
   try { prev = JSON.parse(readFileSync(countriesPath, "utf8")); } catch { /* first run */ }
+  try { prevChangelog = JSON.parse(readFileSync(resolve(root, "src", "data", "changelog.json"), "utf8")); } catch { /* first run */ }
 
   mkdirSync(resolve(root, "src", "data"), { recursive: true });
   writeFileSync(countriesPath, JSON.stringify(out) + "\n");
 
   // Derived, citable artifacts: CSV/JSON downloads, codebook, JSON Schema,
   // per-resource API files, build manifest, and a revision changelog.
-  emitArtifacts(out, { root, SCORE_WEIGHTS, prev });
+  emitArtifacts(out, { root, SCORE_WEIGHTS, prev, prevChangelog });
 
   console.log("\n✓ wrote src/data/countries.json");
   console.log(`  territories : ${countries.length}`);
