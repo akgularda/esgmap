@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(git --version)",
+      "Bash(curl -sI --max-time 20 \"https://raw.githubusercontent.com/owid/energy-data/master/owid-energy-data.csv\")",
+      "Bash(curl -s --max-time 20 \"https://api.worldbank.org/v2/country/USA/indicator/AG.LND.FRST.ZS?format=json&mrnev=1\")",
+      "Bash(mkdir -p public/geo public/data scripts src/components src/overlays src/ui src/data .github/workflows)",
+      "Bash(curl -s --max-time 60 -o public/geo/countries-110m.json \"https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

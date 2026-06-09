@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESGMap — Global Sustainability Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #0c100e;
+    --bg-map:    #0a161a;
+    --ocean:     #0a161a;
+    --panel:     #131815;
+    --panel-2:   #171d19;
+    --elev:      #1c231e;
+    --border:    #283029;
+    --border-2:  #323b34;
+    --text:      #e9ede9;
+    --text-2:    #aab3ac;
+    --text-3:    #717b73;
+    --accent:    #5fbf7f;
+    --accent-2:  #3f8f5c;
+    --warn:      #e0a23c;
+    --bad:       #d4503e;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sidebar-w: 248px;
+    --shadow: 0 18px 50px -12px rgba(0,0,0,.7);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  #root { height: 100vh; }
+
+  /* scrollbars */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #2c352e; border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: #394539; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .mono { font-family: var(--mono); }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+  /* country path interactions */
+  .country { stroke: #0a0e0c; stroke-width: .4px; cursor: pointer; transition: opacity .2s ease; vector-effect: non-scaling-stroke; }
+  .country.nodata { cursor: default; }
+  .country.hover { stroke: #eef3ee; stroke-width: 1.1px; }
+  .country.selected { stroke: #ffffff; stroke-width: 1.4px; }
+  .graticule { fill: none; stroke: rgba(150,190,200,.06); stroke-width: .5px; vector-effect: non-scaling-stroke; }
+
+  /* Entrance animations are transform-only so a paused/frozen frame stays fully visible. */
+  .fadein { animation: fadein .42s ease both; }
+  @keyframes fadein { from { transform: translateY(7px); } to { transform: none; } }
+  .slidein { animation: slidein .34s cubic-bezier(.22,.61,.36,1) both; }
+  @keyframes slidein { from { transform: translateX(18px); } to { transform: none; } }
+
+  button { font-family: inherit; color: inherit; cursor: pointer; }
+  input { font-family: inherit; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fadein, .slidein { animation: none !important; }
+    .country { transition: none; }
+  }
+
+  /* range slider */
+  .esg-range { -webkit-appearance: none; appearance: none; height: 5px; border-radius: 99px; outline: none;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent)); cursor: pointer; }
+  .esg-range:disabled { background: #2c352e; cursor: not-allowed; }
+  .esg-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: #eaf6ee; border: 3px solid var(--accent-2); box-shadow: 0 2px 6px rgba(0,0,0,.5); cursor: grab; }
+  .esg-range:disabled::-webkit-slider-thumb { background: #687069; border-color: #3a443c; }
+  .esg-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #eaf6ee;
+    border: 3px solid var(--accent-2); box-shadow: 0 2px 6px rgba(0,0,0,.5); cursor: grab; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="esg-data.js"></script>
+  <script type="text/babel" src="esg-ui.jsx"></script>
+  <script type="text/babel" src="esg-map.jsx"></script>
+  <script type="text/babel" src="esg-panel.jsx"></script>
+  <script type="text/babel" src="esg-app.jsx"></script>
+  <script type="text/babel" src="esg-main.jsx"></script>
+</body>
+</html>

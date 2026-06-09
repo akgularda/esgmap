@@ -1,0 +1,42 @@
+{
+  "name": "esgmap",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ESGMap — an interactive, dark-themed world-map atlas of national sustainability indicators, wired to real open data.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "build:data": "node scripts/build-data.mjs",
+    "build:meta": "node scripts/extract-meta.mjs"
+  },
+  "dependencies": {
+    "d3-ease": "^3.0.1",
+    "d3-geo": "^3.1.1",
+    "d3-interpolate": "^3.0.1",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-transition": "^3.0.1",
+    "d3-zoom": "^3.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "topojson-client": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/d3-ease": "^3.0.2",
+    "@types/d3-geo": "^3.1.0",
+    "@types/d3-interpolate": "^3.0.4",
+    "@types/d3-scale": "^4.0.8",
+    "@types/d3-selection": "^3.0.10",
+    "@types/d3-transition": "^3.0.8",
+    "@types/d3-zoom": "^3.0.8",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/topojson-client": "^3.1.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}
